@@ -1,5 +1,3 @@
-const fs = require("fs");
-
 function makeTrieFrom(words) {
   const trie = {};
   for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
@@ -86,18 +84,4 @@ function decompress(compressed) {
   return words.join(",");
 }
 
-const wordlist = fs.readFileSync("wordlist.txt", "utf-8");
-
-const compressed = compress(wordlist);
-
-const decompressed = decompress(compressed);
-
-if (decompressed === wordlist) {
-  const finalContents = `const compressedTrie = "${compressed}";`;
-  fs.writeFileSync("compressedTrie.js", finalContents);
-  const savings = wordlist.length - finalContents.length;
-  const kSaved = Math.floor(savings / 1024);
-  console.log(`Success! Produced compressedTrie.js with a ${kSaved}k savings.`);
-} else {
-  console.log("Failed.");
-}
+module.exports = { compress, decompress };
