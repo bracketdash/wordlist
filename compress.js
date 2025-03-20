@@ -37,18 +37,50 @@ function makeWordsFrom(trie) {
 function compress(wordlist) {
   const trie = makeTrieFrom(wordlist.split(","));
   let compressed = JSON.stringify(trie);
+
+  // A
   compressed = compressed.replace(/"([a-z])":{/g, "$1");
+
+  // B
   compressed = compressed.replaceAll('"$":1', "$");
+
+  // C
   compressed = compressed.replace(/(\}+)/g, (c) => c.length);
+
+  // D
+  compressed = compressed.replace(/([0-9]+),/g, "$1");
+
+  // E
+  compressed = compressed.replaceAll("$,", "$");
+
+  // F
+  compressed = compressed.replace(/([a-z])\$/g, (_, c) => c.toUpperCase());
+
   return compressed;
 }
 
 function decompress(compressed) {
   let decompressed = compressed;
+
+  // F
+  decompressed = decompressed.replace(/([A-Z])/g, (c) => c.toLowerCase() + "$");
+
+  // A
   decompressed = decompressed.replace(/([a-z])/g, '"$1":{');
+
+  // D
+  decompressed = decompressed.replace(/([0-9]+)/g, "$1,").slice(0, -1);
+
+  // E
+  decompressed = decompressed.replace(/\$([^0-9])/g, "$,$1");
+
+  // C
   const getEndBrackets = (c) => "}".repeat(parseInt(c, 10));
   decompressed = decompressed.replace(/([0-9]+)/g, getEndBrackets);
+
+  // B
   decompressed = decompressed.replaceAll("$", '"$":1');
+
   const words = makeWordsFrom(JSON.parse(decompressed));
   words.sort();
   return words.join(",");
