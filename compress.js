@@ -1,3 +1,15 @@
+const fs = require("fs");
+
+const availableDicts = ["all", "bananagrams", "wordle"];
+let dict = "all";
+
+if (process.argv[2] && availableDicts.includes(process.argv[2])) {
+  dict = process.argv[2];
+  console.log(`Compressing dictionary "${dict}"...`);
+} else {
+  console.log('Defaulting to dictionary "all"...');
+}
+
 function makeTrieFrom(words) {
   const trie = {};
   for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
@@ -33,7 +45,7 @@ function makeWordsFrom(trie) {
 }
 
 function compress(wordlist) {
-  const trie = makeTrieFrom(wordlist.split(","));
+  const trie = makeTrieFrom(wordlist);
   let compressed = JSON.stringify(trie);
 
   // A
@@ -81,7 +93,25 @@ function decompress(compressed) {
 
   const words = makeWordsFrom(JSON.parse(decompressed));
   words.sort();
-  return words.join(",");
+  return words;
 }
 
-module.exports = { compress, decompress };
+const wordlist = fs.readFileSync(`./wordlists/${dict}.txt`, "utf-8");
+
+const wordsArray = wordlist.split(/\r?\n/).sort();
+
+const compressed = compress(wordsArray);
+const decompressed = decompress(compressed);
+
+const commaSeparatedOriginal = wordsArray.join(",");
+const commaSeparatedDecompressed = decompressed.join(",");
+
+if (commaSeparatedOriginal === commaSeparatedDecompressed) {
+  const finalContents = `const compressedTrie = "${compressed}";`;
+  fs.writeFileSync(`./generated/${dict}.js`, finalContents);
+  const savings = wordlist.length - finalContents.length;
+  const kSaved = Math.floor(savings / 1024);
+  console.log(`Success! Produced ${dict}.js with a ${kSaved}k savings.`);
+} else {
+  console.log("Failed.");
+}
