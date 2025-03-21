@@ -7,7 +7,7 @@ if (process.argv[2] && availableDicts.includes(process.argv[2])) {
   dict = process.argv[2];
   console.log(`Compressing dictionary "${dict}"...`);
 } else {
-  console.log('Defaulting to dictionary "all"...');
+  console.log(`Defaulting to dictionary "${dict}"...`);
 }
 
 function makeTrieFrom(words) {

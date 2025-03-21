@@ -1,94 +1,70 @@
 const fs = require("fs");
 
-const dict = "wordle";
+const availableDicts = ["wordle"];
+let dict = "wordle";
 
-const FIXED_LENGTH = 5;
-
-function makeTrieFrom(words) {
-  const trie = {};
-  for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
-    const word = words[wordIndex];
-    let currentNode = trie;
-    for (let letterIndex = 0; letterIndex < FIXED_LENGTH; letterIndex++) {
-      const char = word[letterIndex];
-      if (letterIndex === FIXED_LENGTH - 1) {
-        currentNode[char] = "$";
-      } else if (!currentNode[char]) {
-        currentNode[char] = {};
-      }
-      currentNode = currentNode[char];
-    }
-  }
-  return trie;
-}
-
-function makeWordsFrom(trie) {
-  const words = [];
-  const stack = [[trie, ""]];
-  while (stack.length > 0) {
-    const [currentNode, prefix] = stack.pop();
-    if (currentNode === "$") {
-      words.push(prefix);
-    } else {
-      const chars = Object.keys(currentNode);
-      for (let i = chars.length - 1; i >= 0; i--) {
-        const char = chars[i];
-        stack.push([currentNode[char], prefix + char]);
-      }
-    }
-  }
-  return words;
+if (process.argv[2] && availableDicts.includes(process.argv[2])) {
+  dict = process.argv[2];
+  console.log(`Compressing dictionary "${dict}"...`);
+} else {
+  console.log(`Defaulting to dictionary "${dict}"...`);
 }
 
 function compress(wordlist) {
-  const trie = makeTrieFrom(wordlist);
-  let compressed = JSON.stringify(trie);
-
-  compressed = compressed.replace(/"([a-z])":"\$"/g, (_, c) => c.toUpperCase());
-
-  compressed = compressed.replace(/"([a-z])":{/g, "$1");
-
-  compressed = compressed.replace(/(\}+),/g, (_, c) => c.length);
-
-  compressed = compressed.replaceAll(",", "");
-
-  return compressed;
+  const places = ["", "", "", "", ""];
+  const counts = [0, 0, 0, 0, 0];
+  for (let i = 0; i < wordlist.length; i++) {
+    const word = wordlist[i];
+    for (let j = 0; j < 5; j++) {
+      if (i > 0 && word[j] !== wordlist[i - 1][j]) {
+        places[j] += `${wordlist[i - 1][j]}${counts[j] > 1 ? counts[j] : ""}`;
+        counts[j] = 1;
+      } else {
+        counts[j]++;
+      }
+    }
+    if (i === wordlist.length - 1) {
+      for (let j = 0; j < 5; j++) {
+        places[j] += `${wordlist[i - 1][j]}${counts[j] > 1 ? counts[j] : ""}`;
+      }
+    }
+  }
+  return places.join(";");
 }
 
 function decompress(compressed) {
-  let decompressed = compressed;
-
-  decompressed = decompressed.replace(/([A-Z])([A-Z])/g, "$1,$2");
-  decompressed = decompressed.replace(/([A-Z])([A-Z])/g, "$1,$2");
-
-  decompressed = decompressed.replace(/([a-z])/g, '"$1":{');
-
-  decompressed = decompressed.replace(
-    /([A-Z])/g,
-    (c) => `"${c.toLowerCase()}":"$"`
-  );
-
-  const getEndBrackets = (c) => "}".repeat(parseInt(c, 10)) + ",";
-  decompressed = decompressed.replace(/([0-9]+)/g, getEndBrackets);
-
-  const words = makeWordsFrom(JSON.parse(decompressed));
-  words.sort();
-  return words;
+  const words = [];
+  const places = compressed.split(";");
+  const counts = [0, 0, 0, 0, 0];
+  const firstPlaceChars = places[0].split(/[0-9]+/);
+  firstPlaceChars.forEach((char) => {
+    const index = places[0].indexOf(char);
+    const num = parseInt(places[0].slice(index).match(/[0-9]+/), 10);
+    for (let a = 0; a < num; a++) {
+      const word = char;
+      // TODO: construct the rest of the word
+      words.push(word);
+    }
+  });
+  process.exit(1);
 }
 
 const wordlist = fs.readFileSync(`./wordlists/${dict}.txt`, "utf-8");
-const wordsArray = wordlist.split(/\r?\n/).sort();
+const wordsArray = wordlist
+  .split(/\r?\n/)
+  .map((w) => w.split("").reverse().join(""))
+  .sort();
 const compressed = compress(wordsArray);
 
-// const finalContents = `const compressedTrie = "${compressed}";`;
-// fs.writeFileSync(`./generated/${dict}-fixedlength.js`, finalContents);
-// process.exit(1);
+const finalContents = `const compressed = "${compressed}";`;
+fs.writeFileSync(`./generated/${dict}-fixedLength.js`, finalContents);
+process.exit(1);
 
 const decompressed = decompress(compressed);
 const commaSeparatedOriginal = wordsArray.join(",");
 const commaSeparatedDecompressed = decompressed.join(",");
 if (commaSeparatedOriginal === commaSeparatedDecompressed) {
-  const finalContents = `const compressedTrie = "${compressed}";`;
+  const finalContents = `const compressed = "${compressed}";`;
   fs.writeFileSync(`./generated/${dict}-fixedLength.js`, finalContents);
   const savings = wordlist.length - finalContents.length;
   const kSaved = Math.floor(savings / 1024);
