@@ -12,20 +12,21 @@ if (process.argv[2] && availableDicts.includes(process.argv[2])) {
 
 function compress(wordlist) {
   const places = ["", "", "", "", ""];
-  const counts = [0, 0, 0, 0, 0];
-  for (let i = 0; i < wordlist.length; i++) {
+  const counts = [1, 1, 1, 1, 1];
+  for (let i = 1; i < wordlist.length; i++) {
     const word = wordlist[i];
     for (let j = 0; j < 5; j++) {
-      if (i > 0 && word[j] !== wordlist[i - 1][j]) {
+      if (word[j] !== wordlist[i - 1][j]) {
         places[j] += `${wordlist[i - 1][j]}${counts[j] > 1 ? counts[j] : ""}`;
         counts[j] = 1;
+        if (i === wordlist.length - 1) {
+          places[j] += word[j];
+        }
       } else {
         counts[j]++;
-      }
-    }
-    if (i === wordlist.length - 1) {
-      for (let j = 0; j < 5; j++) {
-        places[j] += `${wordlist[i - 1][j]}${counts[j] > 1 ? counts[j] : ""}`;
+        if (i === wordlist.length - 1) {
+          places[j] += `${word[j]}${counts[j]}`;
+        }
       }
     }
   }
@@ -34,19 +35,38 @@ function compress(wordlist) {
 
 function decompress(compressed) {
   const words = [];
-  const places = compressed.split(";");
-  const counts = [0, 0, 0, 0, 0];
-  const firstPlaceChars = places[0].split(/[0-9]+/);
-  firstPlaceChars.forEach((char) => {
-    const index = places[0].indexOf(char);
-    const num = parseInt(places[0].slice(index).match(/[0-9]+/), 10);
+  const places = compressed
+    .split(";")
+    .map((place) =>
+      place
+        .match(/([a-z])([0-9]+)?/g)
+        .map((match) => [
+          match[0],
+          match.length > 1 ? parseInt(match.slice(1)) : 1,
+        ])
+    );
+  const counts = [
+    [0, 0],
+    [0, 0],
+    [0, 0],
+    [0, 0],
+    [0, 0],
+  ];
+  places[0].forEach(([char, num]) => {
     for (let a = 0; a < num; a++) {
-      const word = char;
-      // TODO: construct the rest of the word
+      let word = char;
+      for (let b = 1; b < 5; b++) {
+        word += places[b][counts[b][0]][0];
+        counts[b][1]++;
+        if (counts[b][1] >= places[b][counts[b][0]][1]) {
+          counts[b][1] = 0;
+          counts[b][0]++;
+        }
+      }
       words.push(word);
     }
   });
-  process.exit(1);
+  return words.sort();
 }
 
 const wordlist = fs.readFileSync(`./wordlists/${dict}.txt`, "utf-8");
@@ -55,10 +75,6 @@ const wordsArray = wordlist
   .map((w) => w.split("").reverse().join(""))
   .sort();
 const compressed = compress(wordsArray);
-
-const finalContents = `const compressed = "${compressed}";`;
-fs.writeFileSync(`./generated/${dict}-fixedLength.js`, finalContents);
-process.exit(1);
 
 const decompressed = decompress(compressed);
 const commaSeparatedOriginal = wordsArray.join(",");
