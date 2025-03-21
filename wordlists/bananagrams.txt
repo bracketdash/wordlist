@@ -2800,8 +2800,8 @@ drone
 drool
 droop
 drop
-drop-down
 dropbox
+dropdown
 dropkick
 droplet
 dropout
@@ -3497,7 +3497,7 @@ feeling
 feisty
 feline
 fellow
-felt-tip
+felttip
 female
 feminine
 feminism
@@ -9191,7 +9191,6 @@ synthesis
 synthetic
 syrup
 system
-t-shirt
 tabasco
 tabby
 table
@@ -9634,6 +9633,7 @@ trusting
 trustless
 truth
 try
+tshirt
 tubby
 tube
 tubeless
@@ -10642,7 +10642,6 @@ yiddish
 yield
 yin
 yippee
-yo-yo
 yodel
 yoga
 yogurt
