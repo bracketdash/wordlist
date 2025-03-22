@@ -10,6 +10,35 @@ if (process.argv[2] && availableDicts.includes(process.argv[2])) {
   console.log(`Defaulting to dictionary "${dict}"...`);
 }
 
+const caps = [
+  "bc",
+  "mp",
+  "st",
+  "ps",
+  "lm",
+  "pr",
+  "rs",
+  "cd",
+  "sb",
+  "df",
+  "s2",
+  "fg",
+  "bd",
+  "mn",
+  "np",
+  "pt",
+  "gh",
+  "tw",
+  "cf",
+  "rt",
+  "sa",
+  "cs",
+  "dg",
+  "sc",
+  "mr",
+  "hl",
+];
+
 function compress(wordlist) {
   const places = ["", "", "", "", ""];
   const counts = [1, 1, 1, 1, 1];
@@ -30,12 +59,20 @@ function compress(wordlist) {
       }
     }
   }
-  return places.join(";");
+  let joined = places.join(";");
+  caps.forEach((cap, j) => {
+    joined = joined.replaceAll(cap, String.fromCharCode(65 + j));
+  });
+  return joined;
 }
 
 function decompress(compressed) {
   const words = [];
-  const places = compressed
+  let decompressed = compressed;
+  caps.forEach((cap, j) => {
+    decompressed = decompressed.replaceAll(String.fromCharCode(65 + j), cap);
+  });
+  const places = decompressed
     .split(";")
     .map((place) =>
       place
